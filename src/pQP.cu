@@ -78,7 +78,7 @@ static void print_matrix(creal_t *A, const unsigned int nRows,
 int main(void) {
 
 	real_t *Q = NULL, *h = NULL, *V = NULL, *W = NULL;
-	ptrdiff_t i, j;
+	ptrdiff_t i;
 
 	Q = (real_t *) malloc(N * N * sizeof(*Q));
 	h = (real_t *) malloc(N * sizeof(*h));
