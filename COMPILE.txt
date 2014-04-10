@@ -1,0 +1,2 @@
+nvcc -G -g -O0 -gencode arch=compute_20,code=sm_20 -odir "src" -M -o "src/pQP.d" "../src/pQP.cu"
+nvcc --compile -G -O0 -g -gencode arch=compute_20,code=compute_20 -gencode arch=compute_20,code=sm_20  -x cu -o  "src/pQP.o" "../src/pQP.cu"
