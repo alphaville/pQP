@@ -35,7 +35,7 @@
 typedef double real_t;
 typedef const real_t creal_t;
 
-int pre(real_t *Q, real_t *h, real_t *V, real_t *W);
+int init_matrices(real_t *Q, real_t *h, real_t *V, real_t *W);
 
 static void print_matrix(creal_t *A, const unsigned int nRows,
 		const unsigned int nCols);

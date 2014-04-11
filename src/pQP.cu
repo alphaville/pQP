@@ -7,10 +7,9 @@
 #include <curand.h>
 #include "cblas.h"
 #include "pQP.cuh"
+#include "lapacke.h"
 
-
-
-int pre(real_t *Q, real_t *h, real_t *V, real_t *W) {
+int init_matrices(real_t *Q, real_t *h, real_t *V, real_t *W) {
 	real_t *Q_init;
 	ptrdiff_t i;
 	if (Q == NULL) {
@@ -53,11 +52,6 @@ int pre(real_t *Q, real_t *h, real_t *V, real_t *W) {
 	return EXIT_SUCCESS;
 }
 
-
-void compute_matrices(real_t *Q, real_t *h, real_t *V, real_t *W){
-
-}
-
 static void print_matrix(creal_t *A, const unsigned int nRows,
 		const unsigned int nCols) {
 	ptrdiff_t i, j;
@@ -75,16 +69,34 @@ static void print_matrix(creal_t *A, const unsigned int nRows,
 		}
 	}
 }
+
+void do_lapack() {
+	char jobz, uplo;
+	int n, lda, info;
+	double *a;
+	double *w;
+
+	n = 1000;
+	lda = 1000;
+	jobz = 'V';
+	uplo = 'U';
+	a = (double*) malloc(sizeof(*a) * n * lda);
+	w = (double*) malloc(sizeof(*w) * n);
+	info = LAPACKE_dsyev(LAPACK_COL_MAJOR, jobz, uplo, n, a, lda, w);
+	printf("Lapack status = %d\n", info);
+}
+
 int main(void) {
 
+	do_lapack();
 	real_t *Q = NULL, *h = NULL, *V = NULL, *W = NULL;
-	ptrdiff_t i, j;
+	ptrdiff_t i;
 
 	Q = (real_t *) malloc(N * N * sizeof(*Q));
 	h = (real_t *) malloc(N * sizeof(*h));
 	V = (real_t *) malloc(2 * N * N * sizeof(*V));
 	W = (real_t *) malloc(2 * N * sizeof(*W));
-	pre(Q, h, V, W);
+	init_matrices(Q, h, V, W);
 
 	for (i = 0; i < N; i++)
 		printf("h[%td]=%3.2f\n", i, h[i]);
