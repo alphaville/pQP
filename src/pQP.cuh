@@ -30,7 +30,7 @@
     printf("Error at %s:%d\n",__FILE__,__LINE__);             \
     exit(115);}} while(0)
 
-#define N 10
+#define N 5
 
 typedef double real_t;
 typedef const real_t creal_t;
