@@ -5,10 +5,37 @@
  *      Author: Pantelis Sopasakis
  */
 
+/*
+ *   pQP - CUDA implementation of the parallel QP algorithm by Brand et al.
+ *   Copyright (C) 2014 Pantelis Sopasakis <pantelis.sopasakis@imtlucca.it>
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef PQP_CUH_
 #define PQP_CUH_
 
+/* Inclusions */
 #include "cblas.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
+#include <curand.h>
+#include "lapacke.h"
 
 #define CUDA_CALL(value) do {		           								\
 	cudaError_t _m_cudaStat = value;										\
@@ -31,15 +58,16 @@
     exit(115);}} while(0)
 
 #define N 5
+#define NRHS 3
+#define LDA N
+#define LDB NRHS
 
 typedef double real_t;
 typedef const real_t creal_t;
 
 int init_matrices(real_t *Q, real_t *h, real_t *V, real_t *W);
 
-static void print_matrix(creal_t *A, const unsigned int nRows,
-		const unsigned int nCols);
-
-
+template<typename T> void print_matrix(char* desc, int matrix_order,
+		lapack_int m, lapack_int n, T *a);
 
 #endif /* PQP_CUH_ */
