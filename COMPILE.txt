@@ -1,16 +1,14 @@
-**** Build of configuration Debug for project pQP ****
-
 make all 
 Building file: ../src/pQP.cu
 Invoking: NVCC Compiler
-nvcc -I/usr/local/cula/include/ -I/home/chung/lapack-3.5.0/lapacke/include -G -g -O0 -gencode arch=compute_20,code=sm_20 -odir "src" -M -o "src/pQP.d" "../src/pQP.cu"
-nvcc --compile -G -I/usr/local/cula/include/ -I/home/chung/lapack-3.5.0/lapacke/include -O0 -g -gencode arch=compute_20,code=compute_20 -gencode arch=compute_20,code=sm_20  -x cu -o  "src/pQP.o" "../src/pQP.cu"
+/usr/local/cuda-6.0/bin/nvcc -I/usr/local/cula/include/ -I/home/chung/lapack-3.5.0/lapacke/include -G -g -O3 -gencode arch=compute_20,code=sm_20  -odir "src" -M -o "src/pQP.d" "../src/pQP.cu"
+/usr/local/cuda-6.0/bin/nvcc --compile -G -I/usr/local/cula/include/ -I/home/chung/lapack-3.5.0/lapacke/include -O3 -g -gencode arch=compute_20,code=compute_20 -gencode arch=compute_20,code=sm_20  -x cu -o  "src/pQP.o" "../src/pQP.cu"
 Finished building: ../src/pQP.cu
  
-Building target: pQP
-Invoking: NVCC Linker
-nvcc -L/usr/lib/gcc/x86_64-linux-gnu/4.8/ -L/home/chung/lapack-3.5.0 -L/usr/local/cula/lib64 -link -o  "pQP"  ./src/pQP.o   -lgfortran -llapacke -llapack -lcublas -lcula_lapack_basic -lblas -lcurand
-Finished building target: pQP
+#NOTE: The oder of the libraries is important: gfortran goes last!
+#Building target: pQP
+#Invoking: NVCC Linker
+/usr/local/cuda-6.0/bin/nvcc --cudart shared -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/home/chung/lapack-3.5.0 -link -o  "pQP"  ./src/pQP.o   -llapacke -llapack -lcublas -lblas -lcurand -lgfortran
+#nvcc warning : The 'compute_10' and 'sm_10' architectures are deprecated, and may be removed in a future release.
+#Finished building target: pQP
  
-
-**** Build Finished ****

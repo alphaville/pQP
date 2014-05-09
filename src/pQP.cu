@@ -23,7 +23,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #include "pQP.cuh"
+
 
 int init_matrices(real_t *Q, real_t *h, real_t *V, real_t *W) {
 	real_t *Q_init;
@@ -103,48 +105,69 @@ int main(void) {
 
 	/* Declarations */
 	double *Q = NULL;
+	double *Q_copy_1 = NULL;
 	double *h = NULL;
 	double *V = NULL;
 	double *W = NULL;
-	/* Y = Q\V' */
-	double *Y = NULL;
-	double *Qtilde = NULL;
+	double *Y = NULL; // Y = Q\V'
+	double *z = NULL; // z = Q\h
+	double *Q_tilde = NULL;
+	double *h_tilde = NULL;
 	lapack_int ipiv[N];
 	lapack_int info;
-	lapack_int i;
 	/* End of Declarations */
 
 	/* Allocations on the host */
 	Q = (double *) malloc(N * N * sizeof(*Q));
+	Q_copy_1 = (double *) malloc(N * N * sizeof(*Q));
 	h = (double *) malloc(N * sizeof(*h));
 	V = (double *) malloc(2 * N * N * sizeof(*V));
 	W = (double *) malloc(2 * N * sizeof(*W));
 	Y = (double *) malloc(2 * N * N * sizeof(*Y));
-	Qtilde = (double *) malloc((2*N)*(2*N)*sizeof(*Qtilde));
-
+	z = (double *) malloc(N * sizeof(*z));
+	Q_tilde = (double *) malloc((2 * N) * (2 * N) * sizeof(*Q_tilde));
+	h_tilde = (double *) malloc(2 * N * sizeof(*h_tilde));
 
 	/* Initialize Matrices Q, h, V and W with random data */
 	init_matrices(Q, h, V, W);
-	copy_as_transpose<double>(Y, V, N, 2 * N);
 
-	print_matrix<double>("V", LAPACK_COL_MAJOR, 1, 2 * N, N, V);
-	print_matrix<double>("Y", LAPACK_COL_MAJOR, 1, N, 2 * N, Y);
+	/***************************/
+	/*         PART A          */
+	/***************************/
+	memcpy(z, h, N * sizeof(*z)); // z <-- h
+	memcpy(Q_copy_1, Q, N*N*sizeof(*Q)); // Q_copy_1 <-- Q
+	info = LAPACKE_dgesv(LAPACK_COL_MAJOR, N, 1, Q_copy_1, N, ipiv, z, N); // z <-- Q^{-1}z
+	printf("\ninfo2 = %d, %s\n", info, info == 0 ? "success!" : "failure");
+	memcpy(h_tilde, W, 2 * N * sizeof(*h_tilde)); // h_tilde <-- W
+	cblas_dgemv(CblasColMajor, CblasNoTrans, 2*N, N, 1.0, V, 2 * N, z, 1, 1.0,
+			h_tilde, 1); // htilde <-- htilde + V*z
+	free(Q_copy_1);
+
+	/***************************/
+	/*         PART B          */
+	/***************************/
+
+	copy_as_transpose<double>(Y, V, N, 2 * N); // Y <-- V'
+
+//	print_matrix<double>("V'", LAPACK_COL_MAJOR, 1, 2 * N, N, V);
 //	print_matrix("Q", LAPACK_COL_MAJOR, 0, N, N, Q);
 
 //  See also: http://www.netlib.org/lapack/explore-html/d3/d8c/dsgesv_8f.html
-	info = LAPACKE_dgesv(LAPACK_COL_MAJOR, N, 2 * N, Q, N, ipiv, Y,  N);
-	printf("\ninfo = %d, %s\n", info, info == 0 ? "success!" : "failure");
+//	lapack_int LAPACKE_dgesv( int matrix_order, lapack_int n, lapack_int nrhs,
+//	                          double* a, lapack_int lda, lapack_int* ipiv,
+//	                          double* b, lapack_int ldb );
+	info = LAPACKE_dgesv(LAPACK_COL_MAJOR, N, 2 * N, Q, N, ipiv, Y, N);
+	//printf("\ninfo = %d, %s\n", info, info == 0 ? "success!" : "failure");
 
-	print_matrix<double>("Y=Q\\V'", LAPACK_COL_MAJOR, 0, N, 2 * N, Y);
+//	print_matrix<double>("Y=Q\\V'", LAPACK_COL_MAJOR, 0, N, 2 * N, Y);
 
-	cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 2*N, 2*N, N, 1.0, V, 2*N, Y, N, 0.0, Qtilde, 2*N);
+	// Documentation:
+	// https://developer.apple.com/library/mac/documentation/Accelerate/Reference/BLAS_Ref/Reference/reference.html
+	cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 2 * N, 2 * N, N, 1.0,
+			V, 2 * N, Y, N, 0.0, Q_tilde, 2 * N);
 
-	print_matrix<double>("Qtilde", LAPACK_COL_MAJOR, 0, 2 * N, 2 * N, Qtilde);
+	print_matrix<double>("Qtilde", LAPACK_COL_MAJOR, 0, 2 * N, 2 * N, Q_tilde);
 	/* Here Y = Q\V */
-
-//	for (i = 0; i < N; i++) {
-//		printf("%d, ", ipiv[i]);
-//	}
 
 	return 0;
 }
