@@ -23,9 +23,15 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include "pQP.cuh"
 
+static void HandleError(cudaError_t err, const char *file, int line) {
+	if (err != cudaSuccess) {
+		printf("%s in %s at line %d\n", cudaGetErrorString(err), file, line);
+		exit(EXIT_FAILURE);
+	}
+}
+#define HANDLE_CUDA_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
 int init_matrices(real_t *Q, real_t *h, real_t *V, real_t *W) {
 	real_t *Q_init;
@@ -101,9 +107,17 @@ template<typename T> void copy_as_transpose(T *dest, T *source,
 	}
 }
 
+static void HANDLE_ALLOCATION_ERROR(void* x, char* error_code) {
+	// If x is NULL (after dynamic allocation), throw an error and exit
+	if (x == NULL) {
+		fprintf(stderr, "Allocation error: %s\n", error_code);
+		exit(305);
+	}
+}
+
 int main(void) {
 
-	/* Declarations */
+	/* Declarations on HOST */
 	double *Q = NULL;
 	double *Q_copy_1 = NULL;
 	double *h = NULL;
@@ -113,20 +127,32 @@ int main(void) {
 	double *z = NULL; // z = Q\h
 	double *Q_tilde = NULL;
 	double *h_tilde = NULL;
-	lapack_int ipiv[N];
+	/* Declarations on DEVICE */
+	double *Q_tilde_dev = NULL;
+	double *h_tilde_dev = NULL;
+	/* Aux variables on HOST */lapack_int ipiv[N];
 	lapack_int info;
 	/* End of Declarations */
 
 	/* Allocations on the host */
 	Q = (double *) malloc(N * N * sizeof(*Q));
+	HANDLE_ALLOCATION_ERROR(Q, "Q");
 	Q_copy_1 = (double *) malloc(N * N * sizeof(*Q));
+	HANDLE_ALLOCATION_ERROR(Q_copy_1, "Q_copy_1");
 	h = (double *) malloc(N * sizeof(*h));
+	HANDLE_ALLOCATION_ERROR(h, "h");
 	V = (double *) malloc(2 * N * N * sizeof(*V));
+	HANDLE_ALLOCATION_ERROR(V, "V");
 	W = (double *) malloc(2 * N * sizeof(*W));
+	HANDLE_ALLOCATION_ERROR(W, "W");
 	Y = (double *) malloc(2 * N * N * sizeof(*Y));
+	HANDLE_ALLOCATION_ERROR(Y, "Y");
 	z = (double *) malloc(N * sizeof(*z));
+	HANDLE_ALLOCATION_ERROR(z, "z");
 	Q_tilde = (double *) malloc((2 * N) * (2 * N) * sizeof(*Q_tilde));
+	HANDLE_ALLOCATION_ERROR(Q_tilde, "Q_tilde");
 	h_tilde = (double *) malloc(2 * N * sizeof(*h_tilde));
+	HANDLE_ALLOCATION_ERROR(h_tilde, "h_tilde");
 
 	/* Initialize Matrices Q, h, V and W with random data */
 	init_matrices(Q, h, V, W);
@@ -135,18 +161,17 @@ int main(void) {
 	/*         PART A          */
 	/***************************/
 	memcpy(z, h, N * sizeof(*z)); // z <-- h
-	memcpy(Q_copy_1, Q, N*N*sizeof(*Q)); // Q_copy_1 <-- Q
+	memcpy(Q_copy_1, Q, N * N * sizeof(*Q)); // Q_copy_1 <-- Q
 	info = LAPACKE_dgesv(LAPACK_COL_MAJOR, N, 1, Q_copy_1, N, ipiv, z, N); // z <-- Q^{-1}z
 	printf("\ninfo2 = %d, %s\n", info, info == 0 ? "success!" : "failure");
 	memcpy(h_tilde, W, 2 * N * sizeof(*h_tilde)); // h_tilde <-- W
-	cblas_dgemv(CblasColMajor, CblasNoTrans, 2*N, N, 1.0, V, 2 * N, z, 1, 1.0,
+	cblas_dgemv(CblasColMajor, CblasNoTrans, 2 * N, N, 1.0, V, 2 * N, z, 1, 1.0,
 			h_tilde, 1); // htilde <-- htilde + V*z
 	free(Q_copy_1);
 
 	/***************************/
 	/*         PART B          */
 	/***************************/
-
 	copy_as_transpose<double>(Y, V, N, 2 * N); // Y <-- V'
 
 //	print_matrix<double>("V'", LAPACK_COL_MAJOR, 1, 2 * N, N, V);
@@ -157,7 +182,7 @@ int main(void) {
 //	                          double* a, lapack_int lda, lapack_int* ipiv,
 //	                          double* b, lapack_int ldb );
 	info = LAPACKE_dgesv(LAPACK_COL_MAJOR, N, 2 * N, Q, N, ipiv, Y, N);
-	//printf("\ninfo = %d, %s\n", info, info == 0 ? "success!" : "failure");
+	printf("\ninfo = %d, %s\n", info, info == 0 ? "success!" : "failure");
 
 //	print_matrix<double>("Y=Q\\V'", LAPACK_COL_MAJOR, 0, N, 2 * N, Y);
 
@@ -168,6 +193,17 @@ int main(void) {
 
 	print_matrix<double>("Qtilde", LAPACK_COL_MAJOR, 0, 2 * N, 2 * N, Q_tilde);
 	/* Here Y = Q\V */
+
+	/***************************/
+	/*         PART C          */
+	/***************************/
+	// Parallel Implementation (CUDA)
+	/* Allocate memory on DEVICE for Q_tilde_dev */
+	HANDLE_CUDA_ERROR(
+			cudaMalloc((void **) &Q_tilde_dev, (2 * N) * (2 * N) * sizeof(*Q_tilde_dev)));
+	/* Allocate memory on DEVICE for h_tilde_dev */
+	HANDLE_CUDA_ERROR(
+			cudaMalloc((void **) &h_tilde_dev, (2 * N) * sizeof(*h_tilde_dev)));
 
 	return 0;
 }

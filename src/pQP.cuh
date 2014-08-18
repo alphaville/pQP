@@ -58,10 +58,11 @@
     printf("Error at %s:%d\n",__FILE__,__LINE__);             \
     exit(115);}} while(0)
 
-#define N 5
+#define N 3
 #define NRHS 3
 #define LDA N
 #define LDB NRHS
+#define PQP_VERSION "2.1.1"
 
 typedef double real_t;
 typedef const real_t creal_t;
